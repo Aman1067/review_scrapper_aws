@@ -3,19 +3,20 @@ from flask_cors import CORS,cross_origin
 import requests
 from bs4 import BeautifulSoup as bs
 from urllib.request import urlopen as uReq
+import logging
+logging.basicConfig(filename='scrapper.log',level=logging.INFO)
+application = Flask(__name__) #initializing a flask app
+app=application
 
-app = Flask(__name__)
+@app.route("/",methods=['GET']) #route to display the home page
+def hello_world():
+    return render_template('index.html')
 
-@app.route('/',methods=['GET'])  # route to display the home page
-@cross_origin()
-def homePage():
-    return render_template("index.html")
-
-@app.route('/review',methods=['POST','GET']) # route to show the review comments in a web UI
-@cross_origin()
+@app.route('/review',methods=['POST','GET'])
 def index():
-    if request.method == 'POST':
+    if request.method=='POST':
         try:
+            
             searchString = request.form['content'].replace(" ","")
             flipkart_url = "https://www.flipkart.com/search?q=" + searchString
             uClient = uReq(flipkart_url)
@@ -44,6 +45,7 @@ def index():
 
                 except:
                     name = 'No Name'
+                    logging.info('name')
 
                 try:
                     #rating.encode(encoding='utf-8')
@@ -52,32 +54,35 @@ def index():
 
                 except:
                     rating = 'No Rating'
+                    logging.info('rating')
 
                 try:
                     #commentHead.encode(encoding='utf-8')
                     commentHead = commentbox.div.div.div.p.text
+                    
 
                 except:
                     commentHead = 'No Comment Heading'
+                    logging.info(commentHead)
                 try:
                     comtag = commentbox.div.div.find_all('div', {'class': ''})
                     #custComment.encode(encoding='utf-8')
                     custComment = comtag[0].div.text
                 except Exception as e:
-                    print("Exception while creating dictionary: ",e)
+                    logging.info(e)
 
                 mydict = {"Product": searchString, "Name": name, "Rating": rating, "CommentHead": commentHead,
                           "Comment": custComment}
                 reviews.append(mydict)
-            return render_template('results.html', reviews=reviews[0:(len(reviews)-1)])
+                logging.info('log my final result{}'.format(reviews))
+            return render_template('result.html', reviews=reviews[0:(len(reviews)-1)])
         except Exception as e:
-            print('The Exception message is: ',e)
+            logging.info(e)
             return 'something is wrong'
     # return render_template('results.html')
 
     else:
         return render_template('index.html')
 
-if __name__ == "__main__":
-    #app.run(host='127.0.0.1', port=8001, debug=True)
-	app.run(debug=True)
+if __name__=="__main__":
+    app.run(host="0.0.0.0",port=5001)
